@@ -16,3 +16,6 @@ for tweet in trainreader:
 # extract 
 vectorizer = TfidfVectorizer(min_df=1)
 result = vectorizer.fit_transform(corpus)
+
+# take a glimpse at the first glimpse of result
+print result[0]
