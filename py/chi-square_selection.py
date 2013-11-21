@@ -12,15 +12,17 @@ from nltk.stem.snowball import *
 from stemming.porter2 import stem
 
 def cleaned_text(text):
+	print text
 	text = nltk.word_tokenize(text)
-	text = " ".join([stem(x) for x in text])
+	text = " ".join([stem(x.lower()) for x in text])
+	print text
 	return text
 
 cur_dir = os.getcwd()
-# test_csv = file(cur_dir + "/../data/small_test.csv")
-# train_csv = file(cur_dir + "/../data/small_train.csv")
-test_csv = file(cur_dir + "/../data/test.csv")
-train_csv = file(cur_dir + "/../data/train.csv")
+test_csv = file(cur_dir + "/../data/small_test.csv")
+train_csv = file(cur_dir + "/../data/small_train.csv")
+# test_csv = file(cur_dir + "/../data/test.csv")
+# train_csv = file(cur_dir + "/../data/train.csv")
 # dst_train_csv = file(cur_dir + "/../data/result/train_result.csv", "a")
 # dst_test_csv = file(cur_dir + "/../data/result/test_result.csv", "a")
 
