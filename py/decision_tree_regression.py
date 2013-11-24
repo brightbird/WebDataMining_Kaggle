@@ -1,4 +1,4 @@
-# 11.21 ver 1
+# 11.24 ver 1
 
 import os
 import csv
@@ -6,6 +6,7 @@ import nltk
 import numpy as np
 from sklearn.feature_extraction.text import *
 from sklearn.feature_selection import SelectKBest, chi2, f_classif
+from sklearn import tree
 from scipy.sparse import * 
 from nltk.tokenize import *
 from nltk.stem.snowball import *
@@ -18,10 +19,10 @@ def cleaned_text(text):
 	return text
 
 cur_dir = os.getcwd()
-test_csv = file(cur_dir + "/../data/small_test.csv")
-train_csv = file(cur_dir + "/../data/small_train.csv")
-# test_csv = file(cur_dir + "/../data/test.csv")
-# train_csv = file(cur_dir + "/../data/train.csv")
+# test_csv = file(cur_dir + "/../data/small_test.csv")
+# train_csv = file(cur_dir + "/../data/small_train.csv")
+test_csv = file(cur_dir + "/../data/test.csv")
+train_csv = file(cur_dir + "/../data/train.csv")
 
 #################################
 #  	  Get Corpus From CSV 	    #
@@ -75,7 +76,7 @@ print "finish extraction"
 # 		Feature Selection 		#
 #################################
 
-k_for_bestK = 2000
+k_for_bestK = 500
 
 # # get feature names
 attribute_names = ["ATTR:I can not tell attitude"
@@ -107,8 +108,8 @@ for CURRENT_ATTRIBUTE in xrange(0, 1):
 
 	# get CURRENT ATTRIBUTE train_attrs from csv
 	train_attrs = []
-	# train_csv = file(cur_dir + "/../data/train.csv")
-	train_csv = file(cur_dir + "/../data/small_train.csv")
+	train_csv = file(cur_dir + "/../data/train.csv")
+	# train_csv = file(cur_dir + "/../data/small_train.csv")
 	train_reader = csv.reader(train_csv)
 	cnt = 0
 	for tweet in train_reader:
@@ -122,75 +123,31 @@ for CURRENT_ATTRIBUTE in xrange(0, 1):
 	# get y_train from train_attrs
 	y_train = [[float(attr)] for attr in train_attrs]
 
-	print x_train.getnnz()
-	print len(y_train)
-
 	# chi-2 select features
 	selector = SelectKBest(chi2, k = k_for_bestK)
 	selector.fit(x_train, y_train)
 	new_x_train = selector.transform(x_train)
 	new_x_test = selector.transform(x_test)
 
-	# display best 100 words
-	# best_words = []
-	# words = vectorizer.get_feature_names()
-	# feature_value_pairs = []
-	# cnt = 0
-	# for item in selector.scores_:
-	# 	feature_value_pairs.append((cnt, item))
-	# 	cnt += 1
-	# feature_value_pairs = sorted(feature_value_pairs, key = lambda pair : -pair[1])
-	# for item in feature_value_pairs[:100]:
-	# 	best_words.append(words[item[0]])
-	# print attribute_names[CURRENT_ATTRIBUTE]
-	# print best_words
+	# decision tree regression
+	print "start regression"
+	clf = tree.DecisionTreeClassifier()
+	clf = clf.fit(new_x_train.toarray(), y_train)
+	result = clf.predict(new_x_test.toarray())
+	print "regression done"
 
 	# build csv file
-	dst_train_path = cur_dir + "/../data/result/train" + str(CURRENT_ATTRIBUTE) + ".csv"
-	dst_test_path = cur_dir + "/../data/result/test" + str(CURRENT_ATTRIBUTE) + ".csv"
-	if os.path.exists(dst_train_path):
-		os.remove(dst_train_path)
-	if os.path.exists(dst_test_path):
-		os.remove(dst_test_path)
-	dst_train_csv = file(dst_train_path, 'a')
-	dst_test_csv = file(dst_test_path, 'a')
+	result_path = cur_dir + "/../data/result/res_" + str(CURRENT_ATTRIBUTE) + ".csv"
+	if os.path.exists(result_path):
+		os.remove(result_path)
+	result_csv = file(result_path, 'a')
+	result_writer = csv.writer(result_csv)
 
-	# get header for new_x_test csv
-	# header = [x for x in xrange(0, k_for_bestK)]
+	# output result to csv file
+	print "start writing result"
+	for item in result:
+		result_writer.writerow([item])
+		print item
+	print "writing result done"
 
-	# write new_x_test to csv
-	# test_len = len(test_corpus)
-	# test_result_writer = csv.writer(dst_test_csv)
-	# test_result_writer.writerow(header)
-	# for i in xrange(0, test_len):
-	# 	vector = new_x_test[i].toarray().tolist()[0]
-	# 	test_result_writer.writerow(vector)
-	# 	# print "test entry", i, "to csv"
-
-	# sparse matrix write
-	# mmwrite(dst_test_csv, new_x_test)
-
-	# get header for new_x_train csv
-	# header.append(attribute_names[CURRENT_ATTRIBUTE])
-
-	# write new_x_train and new_y_train to csv
-	# train_len = len(train_corpus)
-	# train_result_writer = csv.writer(dst_train_csv)
-	# train_result_writer.writerow(header)
-	# for i in xrange(0, train_len):
-	# 	vector = new_x_train[i].toarray().tolist()[0] + y_train[i]
-	# 	train_result_writer.writerow(vector)
-	# 	# print "train entry", i, "to csv"
-
-	# sparse matrix write
-	# mmwrite(dst_train_csv, new_x_train)
-
-	train_csv.close()
-	dst_train_csv.close()
-	dst_test_csv.close()
-
-	# print stat 
-	print "new_x_train"
-	print new_x_train
-	print "new_x_test"
-	print new_x_test
+	result_csv.close()
