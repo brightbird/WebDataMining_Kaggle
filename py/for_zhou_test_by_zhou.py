@@ -24,7 +24,7 @@ def cleaned_text(text):
 
 CORPUS_SIZE_ITEMS = ['entire', 'small']
 CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
-PREDICT_ATTRIBUTE_NUM = 1
+PREDICT_ATTRIBUTE_NUM = 15
 
 cur_dir = os.getcwd()
 if (CORPUS_SIZE == 1):
@@ -153,5 +153,11 @@ for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
 	feature_value_pairs = sorted(feature_value_pairs, key = lambda pair : -pair[1])
 	for item in feature_value_pairs[:100]:
 		best_words.append(words[item[0]])
-	print attribute_names[CURRENT_ATTRIBUTE]
-	print best_words
+		
+	f=open(cur_dir + '/../zhou_test/attribute' + str(CURRENT_ATTRIBUTE + 1) + '.txt','w')
+	f.write(attribute_names[CURRENT_ATTRIBUTE])
+	f.write("\n")
+	f.write("\n")
+	for i in best_words:
+		f.write(i + "\n")
+	f.close()
