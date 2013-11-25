@@ -25,6 +25,7 @@ def cleaned_text(text):
 CORPUS_SIZE_ITEMS = ['entire', 'small']
 CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
 PREDICT_ATTRIBUTE_NUM = 15
+VECTORIZER = 1 			# 0 for CountVectorizer, 1 for TfidfVectorizer
 
 cur_dir = os.getcwd()
 if (CORPUS_SIZE == 1):
@@ -76,7 +77,10 @@ test_csv.close()
 # get x_train, x_test from train_corpus, test_corpus
 print "start extraction"
 entire_corpus = train_corpus + test_corpus
-vectorizer = CountVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
+if (VECTORIZER == 0):
+	vectorizer = CountVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
+else if (VECTORIZER == 1):
+	vectorizer = TfidfVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
 vectorizer.fit(train_corpus)
 x_train = vectorizer.transform(train_corpus)
 x_test = vectorizer.transform(test_corpus)
