@@ -22,6 +22,7 @@ CORPUS_SIZE_ITEMS = ['entire', 'small']
 CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
 PREDICT_ATTRIBUTE_NUM = 1
 VECTORIZER = 1 			# 0 for CountVectorizer, 1 for TfidfVectorizer
+K_FOR_BEST = 2000
 
 cur_dir = os.getcwd()
 if (CORPUS_SIZE == 1):
@@ -86,8 +87,6 @@ print "finish extraction"
 # 		Feature Selection 		#
 #################################
 
-k_for_bestK = 2000
-
 # # get feature names
 attribute_names = ["ATTR:I can not tell attitude"
 ,"ATTR:Negative"
@@ -137,7 +136,7 @@ for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
 	y_train = [[float(attr)] for attr in train_attrs]
 
 	# chi-2 select features
-	selector = SelectKBest(chi2, k = k_for_bestK)
+	selector = SelectKBest(chi2, k = K_FOR_BEST)
 	selector.fit(x_train, y_train)
 	new_x_train = selector.transform(x_train)
 	new_x_test = selector.transform(x_test)
