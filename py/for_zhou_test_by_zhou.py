@@ -79,7 +79,7 @@ print "start extraction"
 entire_corpus = train_corpus + test_corpus
 if (VECTORIZER == 0):
 	vectorizer = CountVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
-else if (VECTORIZER == 1):
+elif (VECTORIZER == 1):
 	vectorizer = TfidfVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
 vectorizer.fit(train_corpus)
 x_train = vectorizer.transform(train_corpus)
