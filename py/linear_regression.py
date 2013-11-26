@@ -1,28 +1,38 @@
-# 11.24 ver 1
+# 11.26 ver 1 - 0.20335
 
 import os
 import csv
 import nltk
 import numpy as np
 from sklearn.feature_extraction.text import *
-from sklearn.feature_selection import SelectKBest, chi2, f_classif
-from sklearn import tree
+from sklearn.feature_selection import SelectKBest, SelectPercentile, chi2, f_classif
+from sklearn.linear_model import *
+from sklearn.naive_bayes import *
+from sklearn import svm
 from scipy.sparse import * 
+from scipy.io import *
 from nltk.tokenize import *
 from nltk.stem.snowball import *
 from stemming.porter2 import stem
-from scipy.io import *
 
 def cleaned_text(text):
 	text = nltk.word_tokenize(text)
 	text = " ".join([stem(x.lower()) for x in text])
 	return text
 
+CORPUS_SIZE_ITEMS = ['entire', 'small']
+CORPUS_SIZE = 0 		# 0 for entire, 1 for small 
+PREDICT_ATTRIBUTE_NUM = 24
+VECTORIZER = 1 			# 0 for CountVectorizer, 1 for TfidfVectorizer
+K_FOR_BEST = 2000
+
 cur_dir = os.getcwd()
-# test_csv = file(cur_dir + "/../data/small_test.csv")
-# train_csv = file(cur_dir + "/../data/small_train.csv")
-test_csv = file(cur_dir + "/../data/test.csv")
-train_csv = file(cur_dir + "/../data/train.csv")
+if (CORPUS_SIZE == 1):
+	test_csv = file(cur_dir + "/../data/small_test.csv")
+	train_csv = file(cur_dir + "/../data/small_train.csv")
+else:
+	test_csv = file(cur_dir + "/../data/test.csv")
+	train_csv = file(cur_dir + "/../data/train.csv")
 
 #################################
 #  	  Get Corpus From CSV 	    #
@@ -36,9 +46,9 @@ cnt = 0
 train_reader = csv.reader(train_csv)
 for tweet in train_reader:
 	text = unicode(tweet[1] + " " + tweet[2] + " " + tweet[3], 'ascii', 'ignore')
-	text = cleaned_text(text)
+	# text = cleaned_text(text)
 	train_corpus.append(text)
-	print "train tweet", cnt, "to corpus[]"
+	# print "train tweet", cnt, "to corpus[]"
 	cnt += 1
 
 # delete header
@@ -50,9 +60,9 @@ cnt = 0
 test_reader = csv.reader(test_csv)
 for tweet in test_reader:
 	text = unicode(tweet[1] + " " + tweet[2] + " " + tweet[3], 'ascii', 'ignore')
-	text = cleaned_text(text)
+	# text = cleaned_text(text)
 	test_corpus.append(text)
-	print "test tweet", cnt, "to corpus[]"
+	# print "test tweet", cnt, "to corpus[]"
 	cnt += 1
 
 # delete header
@@ -66,7 +76,12 @@ test_csv.close()
 # get x_train, x_test from train_corpus, test_corpus
 print "start extraction"
 entire_corpus = train_corpus + test_corpus
-vectorizer = CountVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
+if (VECTORIZER == 0):
+	vectorizer = CountVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
+elif (VECTORIZER == 1):
+	vectorizer = TfidfVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
+	# vectorizer = TfidfVectorizer(ngram_range=(1, 5), analyzer="word", binary=False, min_df=3)
+
 vectorizer.fit(train_corpus)
 x_train = vectorizer.transform(train_corpus)
 x_test = vectorizer.transform(test_corpus)
@@ -75,8 +90,6 @@ print "finish extraction"
 #################################
 # 		Feature Selection 		#
 #################################
-
-k_for_bestK = 500
 
 # # get feature names
 attribute_names = ["ATTR:I can not tell attitude"
@@ -104,18 +117,22 @@ attribute_names = ["ATTR:I can not tell attitude"
 ,"ATTR:tornado"
 ,"ATTR:wind"
 ]
-for CURRENT_ATTRIBUTE in xrange(0, 1):
+for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
+
+	if (CORPUS_SIZE == 1):
+		train_csv = file(cur_dir + "/../data/small_train.csv")
+	else:
+		train_csv = file(cur_dir + "/../data/train.csv")
+
+	print "CURRENT_ATTRIBUTE :", attribute_names[CURRENT_ATTRIBUTE]
 
 	# get CURRENT ATTRIBUTE train_attrs from csv
 	train_attrs = []
-	train_csv = file(cur_dir + "/../data/train.csv")
-	# train_csv = file(cur_dir + "/../data/small_train.csv")
 	train_reader = csv.reader(train_csv)
 	cnt = 0
 	for tweet in train_reader:
 		attr = tweet[CURRENT_ATTRIBUTE + 4]
 		train_attrs.append(attr)
-		# print CURRENT_ATTRIBUTE, "- train attr", cnt, "to attrs[]"
 		cnt += 1
 
 	del train_attrs[0]
@@ -124,17 +141,27 @@ for CURRENT_ATTRIBUTE in xrange(0, 1):
 	y_train = [[float(attr)] for attr in train_attrs]
 
 	# chi-2 select features
-	selector = SelectKBest(chi2, k = k_for_bestK)
+	print "start feature selection"
+	# selector = SelectKBest(chi2, k = K_FOR_BEST)
+	selector = SelectPercentile(score_func=chi2, percentile=10)
 	selector.fit(x_train, y_train)
 	new_x_train = selector.transform(x_train)
 	new_x_test = selector.transform(x_test)
+	print "feature selection done"
 
-	# decision tree regression
+	# convert y_train to svm-fit shape
+	y_train = [attr[0] for attr in y_train]
+
+	# linear regression
 	print "start regression"
-	clf = tree.DecisionTreeClassifier()
-	clf = clf.fit(new_x_train.toarray(), y_train)
-	result = clf.predict(new_x_test.toarray())
+	clf = LinearRegression()
+	clf = clf.fit(new_x_train, y_train)
+	result = clf.predict(new_x_test)
 	print "regression done"
+
+	# for item in result:
+	# 	if (item > 0):
+	# 		print item
 
 	# build csv file
 	result_path = cur_dir + "/../data/result/res_" + str(CURRENT_ATTRIBUTE) + ".csv"
