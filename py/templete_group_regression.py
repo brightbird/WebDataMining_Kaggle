@@ -1,4 +1,4 @@
-# 11.27 ver 3
+# 11.27 
 
 import os
 import csv
@@ -20,7 +20,6 @@ def cleaned_text(text):
 
 CORPUS_SIZE_ITEMS = ['entire', 'small']
 CORPUS_SIZE = 0 		# 0 for entire, 1 for small 
-PREDICT_ATTRIBUTE_NUM = 24
 VECTORIZER = 1 			# 0 for CountVectorizer, 1 for TfidfVectorizer
 K_FOR_BEST = 2000
 SELECT_PERCENTILE = 30
@@ -41,7 +40,7 @@ else:
 train_corpus = []
 test_corpus = []
 
-# get train_tweets from csv to train_corpus[]
+# get train_tweets from csv to train_corpus[ ]
 cnt = 0
 train_reader = csv.reader(train_csv)
 for tweet in train_reader:
@@ -77,7 +76,7 @@ entire_corpus = train_corpus + test_corpus
 if (VECTORIZER == 0):
 	vectorizer = CountVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
 elif (VECTORIZER == 1):
-	vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word')
+	vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word', tokenizer = nltk.word_tokenize)
 
 vectorizer.fit(train_corpus)
 x_train = vectorizer.transform(train_corpus)
@@ -86,55 +85,47 @@ print "finish extraction"
 
 #################################
 # 		Feature Selection 		#
+#		  and Regression 		#
+#	for three groups of attrs 	#
 #################################
 
-# # get feature names
-attribute_names = ["ATTR:I can not tell attitude"
-,"ATTR:Negative"
-,"ATTR:Neutral / author is just sharing information"
-,"ATTR:Positive"
-,"ATTR:Tweet not related to weather condition"  
-,"ATTR:current (same day) weather"
-,"ATTR:future (forecast)"
-,"ATTR:I can not tell time"
-,"ATTR:past weather"
-,"ATTR:clouds"
-,"ATTR:cold"
-,"ATTR:dry"
-,"ATTR:hot"
-,"ATTR:humid"
-,"ATTR:hurricane"
-,"ATTR:I can not tell weather"
-,"ATTR:ice"
-,"ATTR:other"
-,"ATTR:rain"
-,"ATTR:snow"
-,"ATTR:storms"
-,"ATTR:sun"
-,"ATTR:tornado"
-,"ATTR:wind"
-]
-for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
+train_len = len(train_corpus)
+
+#################################
+## 	  attributes group loop    ##
+
+for ATTRIBUTES_GROUP in xrange(0, 3):
+
+	print "GROUP -", ATTRIBUTES_GROUP
 
 	if (CORPUS_SIZE == 1):
 		train_csv = file(cur_dir + "/../data/small_train.csv")
 	else:
 		train_csv = file(cur_dir + "/../data/train.csv")
+	attrs_arr = []
+	time_attrs = []
+	weather_attrs = []
+	for i in xrange(0, train_len + 1):
+		attrs_arr.append([])
 
-	print "CURRENT_ATTRIBUTE :", attribute_names[CURRENT_ATTRIBUTE]
-
-	# get CURRENT ATTRIBUTE train_attrs from csv
-	train_attrs = []
+	# get attitude attributes from csv
+	if (ATTRIBUTES_GROUP == 0):
+		index_from, index_to = 4, 9
+	if (ATTRIBUTES_GROUP == 1):
+		index_from, index_to = 9, 13
+	if (ATTRIBUTES_GROUP == 2):
+		index_from, index_to = 13, 28
 	train_reader = csv.reader(train_csv)
 	cnt = 0
 	for tweet in train_reader:
-		attr = tweet[CURRENT_ATTRIBUTE + 4]
-		train_attrs.append(attr)
+		attr = tweet[index_from:index_to]
+		attrs_arr[cnt] = attr
 		cnt += 1
-	del train_attrs[0]
+	train_csv.close()
+	del attrs_arr[0]
 
 	# get y_train from train_attrs
-	y_train = [[float(attr)] for attr in train_attrs]
+	y_train = [[float(attr) for attr in attrs] for attrs in attrs_arr]
 	# chi-2 select features
 	print "start feature selection"
 	if (SELECTOR == 0):
@@ -145,8 +136,6 @@ for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
 	new_x_train = selector.transform(x_train)
 	new_x_test = selector.transform(x_test)
 	print "feature selection done"
-	# convert y_train to right dimension
-	# y_train = [attr[0] for attr in y_train]
 
 	# regression
 	print "start regression"
@@ -155,12 +144,13 @@ for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
 	result = clf.predict(new_x_test)
 	print "regression done"
 
-	for item in result:
-		if (item > 0):
-			print item
-
 	# build csv file
-	result_path = cur_dir + "/../data/result/res_" + str(CURRENT_ATTRIBUTE) + ".csv"
+	if (ATTRIBUTES_GROUP == 0):
+		result_path = cur_dir + "/../data/result/attitude_res.csv"
+	if (ATTRIBUTES_GROUP == 1):
+		result_path = cur_dir + "/../data/result/time_res.csv"
+	if (ATTRIBUTES_GROUP == 2):
+		result_path = cur_dir + "/../data/result/weather_res.csv"
 	if os.path.exists(result_path):
 		os.remove(result_path)
 	result_csv = file(result_path, 'a')
@@ -169,7 +159,10 @@ for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
 	# output result to csv file
 	print "start writing result"
 	for item in result:
-		result_writer.writerow([item])
+		result_writer.writerow(item)
 	print "writing result done"
 
 	result_csv.close()
+
+## 	       loop over	       ##
+#################################
