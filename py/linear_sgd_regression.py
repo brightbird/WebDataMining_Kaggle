@@ -1,4 +1,5 @@
-# 11.27 ver 1
+# 11.27 ver 1 
+# fast
 
 import os
 import csv
@@ -16,6 +17,8 @@ from nltk.stem.snowball import *
 from stemming.porter2 import stem
 
 def cleaned_text(text):
+	text = nltk.word_tokenize(text)
+	text = " ".join([stem(x.lower()) for x in text])
 	return text
 
 CORPUS_SIZE_ITEMS = ['entire', 'small']
@@ -23,7 +26,7 @@ CORPUS_SIZE = 0 		# 0 for entire, 1 for small
 PREDICT_ATTRIBUTE_NUM = 24
 VECTORIZER = 1 			# 0 for CountVectorizer, 1 for TfidfVectorizer
 K_FOR_BEST = 2000
-SELECT_PERCENTILE = 30
+SELECT_PERCENTILE = 10
 SELECTOR = 1 			# 0 for K-select, 1 for precentile-select
 
 cur_dir = os.getcwd()
@@ -48,6 +51,7 @@ for tweet in train_reader:
 	text = unicode(tweet[1] + " " + tweet[2] + " " + tweet[3], 'ascii', 'ignore')
 	# text = cleaned_text(text)
 	train_corpus.append(text)
+	# print "train tweet", cnt, "to corpus[]"
 	cnt += 1
 
 # delete header
@@ -61,6 +65,7 @@ for tweet in test_reader:
 	text = unicode(tweet[1] + " " + tweet[2] + " " + tweet[3], 'ascii', 'ignore')
 	# text = cleaned_text(text)
 	test_corpus.append(text)
+	# print "test tweet", cnt, "to corpus[]"
 	cnt += 1
 
 # delete header
@@ -77,7 +82,8 @@ entire_corpus = train_corpus + test_corpus
 if (VECTORIZER == 0):
 	vectorizer = CountVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
 elif (VECTORIZER == 1):
-	vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word', tokenizer = nltk.word_tokenize)
+	vectorizer = TfidfVectorizer(min_df = 1, tokenizer = nltk.word_tokenize)
+	# vectorizer = TfidfVectorizer(ngram_range=(1, 5), analyzer="word", binary=False, min_df=3)
 
 vectorizer.fit(train_corpus)
 x_train = vectorizer.transform(train_corpus)
@@ -131,10 +137,12 @@ for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
 		attr = tweet[CURRENT_ATTRIBUTE + 4]
 		train_attrs.append(attr)
 		cnt += 1
+
 	del train_attrs[0]
 
 	# get y_train from train_attrs
 	y_train = [[float(attr)] for attr in train_attrs]
+
 	# chi-2 select features
 	print "start feature selection"
 	if (SELECTOR == 0):
@@ -145,33 +153,31 @@ for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
 	new_x_train = selector.transform(x_train)
 	new_x_test = selector.transform(x_test)
 	print "feature selection done"
-	# convert y_train to right dimension
+
+	# convert y_train to svm-fit shape
 	y_train = [attr[0] for attr in y_train]
 
-	# regression
+	# linear regression
 	print "start regression"
-	clf = svm.SVR(kernel='rbf', degree=3, gamma=1.9, coef0=0.0, tol=0.001, \
-		C=0.13, epsilon=0.1, shrinking=True, probability=False, cache_size=700, \
-		verbose=False, max_iter=-1, random_state=None)
+	clf = SGDRegressor()
 	clf = clf.fit(new_x_train, y_train)
 	result = clf.predict(new_x_test)
 	print "regression done"
 
 	for item in result:
-		if (item > 0):
-			print item
+		print item
 
-	# build csv file
-	result_path = cur_dir + "/../data/result/res_" + str(CURRENT_ATTRIBUTE) + ".csv"
-	if os.path.exists(result_path):
-		os.remove(result_path)
-	result_csv = file(result_path, 'a')
-	result_writer = csv.writer(result_csv)
+	# # build csv file
+	# result_path = cur_dir + "/../data/result/res_" + str(CURRENT_ATTRIBUTE) + ".csv"
+	# if os.path.exists(result_path):
+	# 	os.remove(result_path)
+	# result_csv = file(result_path, 'a')
+	# result_writer = csv.writer(result_csv)
 
-	# output result to csv file
-	print "start writing result"
-	for item in result:
-		result_writer.writerow([item])
-	print "writing result done"
+	# # output result to csv file
+	# print "start writing result"
+	# for item in result:
+	# 	result_writer.writerow([item])
+	# print "writing result done"
 
-	result_csv.close()
+	# result_csv.close()

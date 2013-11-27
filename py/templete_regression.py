@@ -1,4 +1,4 @@
-# 11.27 ver 1
+# 11.27 
 
 import os
 import csv
@@ -150,9 +150,7 @@ for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
 
 	# regression
 	print "start regression"
-	clf = svm.SVR(kernel='rbf', degree=3, gamma=1.9, coef0=0.0, tol=0.001, \
-		C=0.13, epsilon=0.1, shrinking=True, probability=False, cache_size=700, \
-		verbose=False, max_iter=-1, random_state=None)
+	clf = LinearRegression()
 	clf = clf.fit(new_x_train, y_train)
 	result = clf.predict(new_x_test)
 	print "regression done"

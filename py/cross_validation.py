@@ -1,7 +1,8 @@
-# 11.25 ver 1
+# 11.27 ver2
 
 import os
 import csv
+import math
 import nltk
 import numpy as np
 from sklearn.feature_extraction.text import *
@@ -16,28 +17,18 @@ from nltk.stem.snowball import *
 from stemming.porter2 import stem
 from lmfit import *
 
-x_train, x_test, y_train, y_test = [], [], [], []
-
 def cleaned_text(text):
 	text = nltk.word_tokenize(text)
 	text = " ".join([stem(x.lower()) for x in text])
 	return text
 
-def residuals(p):
-	# gamma = p['gamma'].value
-	C = p['C'].value
-	# epsilon = p['epsilon'].value
-	clf = svm.SVR(kernel='rbf', degree=3, gamma=0.1, coef0=0.0, tol=0.001, \
-		C=C, epsilon=0.1, shrinking=True, probability=False, cache_size=700, \
-		verbose=False, max_iter=-1, random_state=None)
-	clf = clf.fit(x_train, y_train)
-	return 1 - clf.score(x_test, y_test)
-
 CORPUS_SIZE_ITEMS = ['entire', 'small']
-CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
-PREDICT_ATTRIBUTE_NUM = 1
+CORPUS_SIZE = 0 		# 0 for entire, 1 for small 
+PREDICT_ATTRIBUTE_NUM = 24
 VECTORIZER = 1 			# 0 for CountVectorizer, 1 for TfidfVectorizer
 K_FOR_BEST = 2000
+SELECT_PERCENTILE = 30
+SELECTOR = 1 			# 0 for K-select, 1 for precentile-select
 
 cur_dir = os.getcwd()
 if (CORPUS_SIZE == 1):
@@ -125,7 +116,6 @@ for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
 	for tweet in train_reader:
 		attr = tweet[CURRENT_ATTRIBUTE + 4]
 		train_attrs.append(attr)
-		# print CURRENT_ATTRIBUTE, "- train attr", cnt, "to attrs[]"
 		cnt += 1
 
 	del train_attrs[0]
@@ -134,42 +124,39 @@ for CURRENT_ATTRIBUTE in xrange(0, PREDICT_ATTRIBUTE_NUM):
 	y_train = [[float(attr)] for attr in train_attrs]
 
 	# chi-2 select features
-	# selector = SelectKBest(chi2, k = K_FOR_BEST)
-	selector = SelectPercentile(score_func=chi2, percentile=18)
+	print "start feature selection"
+	if (SELECTOR == 0):
+		selector = SelectKBest(chi2, k = K_FOR_BEST)
+	else:
+		selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
 	selector.fit(x_train, y_train)
 	new_x_train = selector.transform(x_train)
+	print "feature selection done"
 
 	# convert y_train to svm-fit shape
 	y_train = [attr[0] for attr in y_train]
 
-	# size = len(y_train)
-	# for i in xrange(0, size):
-	# 	if (y_train[i] != 0):
-	# 		print i
-	# 		print x_train[i]
-	# 		print y_train[i]
+	new_x_train, new_x_test, new_y_train, new_y_test = cross_validation.train_test_split(new_x_train, y_train, test_size=0.4, random_state=0)
 
-	x_train, x_test, y_train, y_test = cross_validation.train_test_split(new_x_train, y_train, test_size=0.4, random_state=0)
-
-	# svm regression
+	# regression
 	# clf = svm.SVR(kernel='rbf', degree=3, gamma=1.9, coef0=0.0, tol=0.001, \
 	# 	C=0.13, epsilon=0.1, shrinking=True, probability=False, cache_size=700, \
 	# 	verbose=False, max_iter=-1, random_state=None)
-	clf = LogisticRegression()
-	clf = clf.fit(x_train, y_train)
-	score = clf.score(x_test, y_test)
+	clf = LinearRegression()
+	clf = clf.fit(new_x_train, new_y_train)
+
+	# cross validation
+	score = clf.score(new_x_test, new_y_test)
 	print "score :", score
 
-	# # lmfit for good svm param
-	# print "start searching good param"
-	# x_train = x_train.toarray()
-	# x_test = x_test.toarray()
-	# y_train = [[item] for item in y_train]
-	# y_test = [[item] for item in y_test]
-	# params = Parameters()
-	# params.add('C', value=2.0)
-	# # params.add('gamma', value=0.1, min=0.001)
-	# # params.add('epsilon', value=0)
-	# plsq = minimize(residuals, params)
-	# print fit_report(params)
+	# my validation
+	predict_y_test = clf.predict(new_x_test)
+	RMSE = 0
+	n = len(new_y_test)
+	for i in xrange(0, n):
+		RMSE += (new_y_test[i] - predict_y_test[i]) ** 2
+	RMSE /= n
+	RMSE = math.sqrt(RMSE)
+	print "RMSE :", RMSE
 
+	train_csv.close()
