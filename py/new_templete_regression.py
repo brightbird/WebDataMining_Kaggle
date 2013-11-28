@@ -31,6 +31,17 @@ test_content = pandas.read_csv(test_path)
 train_len = len(train_content)
 test_len = len(test_content)
 
+for i in xrange(0, train_len):
+	if (math.isnan(train_content['state'][i])):
+		train_content['state'][i] = ""
+	if (math.isnan(train_content['location'][i])):
+		train_content['location'][i] = ""
+for i in xrange(0, test_len):
+	if (math.isnan(test_content['state'][i])):
+		test_content['state'][i] = ""
+	if (math.isnan(test_content['location'][i])):
+		test_content['location'][i] = ""
+		
 train_tweets = train_content['tweet']
 train_location = train_content['state'] + " " + train_content['location']
 train_attitude = train_content.ix[:,4:9]

@@ -56,7 +56,7 @@ x_test = vectorizer.transform(test_tweets)
 print "regression"
 
 y_train = np.array(train_attributes)
-clf = linear_model.Ridge (alpha = 1.85)
+clf = Ridge (alpha = 1.85)
 clf.fit(x_train, y_train)
 y_test = clf.predict(x_test)
 

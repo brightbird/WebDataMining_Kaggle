@@ -6,11 +6,12 @@
 # ridge 1
 # kaggle : , RMSE : 0.16409
 # ridge 2
-# kaggle : , RMSE : 0.16380
+# kaggle : , RMSE : 0.15712
 
 import os
 import pandas
 import nltk
+import math
 import numpy as np
 from sklearn.feature_extraction.text import *
 from sklearn.feature_selection import SelectPercentile, chi2
@@ -39,6 +40,12 @@ else:
 train_content = pandas.read_csv(train_path)
 train_len = len(train_content)
 
+for i in xrange(0, train_len):
+	if (isinstance(train_content['state'][i], basestring) == False):
+		train_content['state'][i] = ""
+	if (isinstance(train_content['location'][i], basestring) == False):
+		train_content['location'][i] = ""
+
 train_tweets = train_content['tweet']
 train_location = train_content['state'] + " " + train_content['location']
 train_attitude = train_content.ix[:,4:9]
@@ -50,6 +57,8 @@ train_attributes = train_content.ix[:,4:28]
 # 		Feature Exraction 		#
 #################################
 print "feature extraction"
+
+train_tweets = train_tweets + " " + train_location
 
 vectorizer = TfidfVectorizer(max_features=4000, strip_accents='unicode', analyzer='word')
 # vectorizer = CountVectorizer(min_df=1)

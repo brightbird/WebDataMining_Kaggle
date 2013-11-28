@@ -35,9 +35,14 @@ if (CORPUS_SIZE == 1):
 else:
 	train_path= cur_dir + "/../data/train.csv"
 
-
 train_content = pandas.read_csv(train_path)
 train_len = len(train_content)
+
+for i in xrange(0, train_len):
+	if (isinstance(train_content['state'][i], basestring) == False):
+		train_content['state'][i] = ""
+	if (isinstance(train_content['location'][i], basestring) == False):
+		train_content['location'][i] = ""
 
 train_tweets = train_content['tweet']
 train_location = train_content['state'] + " " + train_content['location']
@@ -64,7 +69,7 @@ y_train = np.array(train_attributes)
 x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_train, y_train, test_size=0.4, random_state=0)
 
 # clf = LinearRegression()
-# clf = Ridge (alpha = 1.85)
+clf = Ridge (alpha = 1.85)
 # clf = SVR(kernel='rbf', degree=3, gamma=0.2, coef0=0.0, tol=0.001, \
 # 	C=0.9, epsilon=0.01, shrinking=True, probability=False, cache_size=700, \
 # 	verbose=False, max_iter=-1, random_state=None)

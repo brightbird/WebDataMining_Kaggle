@@ -26,7 +26,7 @@ for i in xrange(0, length):
 	# attitude
 	for j in xrange(1, 6):
 		num = float(content[i][j])
-		if (num > 0.95):
+		if (num > 1):
 			normalized_content[i].append(1)
 		elif (num > 0.05):
 			normalized_content[i].append(num)
@@ -42,7 +42,7 @@ for i in xrange(0, length):
 	# time
 	for j in xrange(6, 10):
 		num = float(content[i][j])
-		if (num > 0.95):
+		if (num > 1):
 			normalized_content[i].append(1)
 		elif (num > 0.05):
 			normalized_content[i].append(num)

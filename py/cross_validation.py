@@ -38,6 +38,12 @@ else:
 train_content = pandas.read_csv(train_path)
 train_len = len(train_content)
 
+for i in xrange(0, train_len):
+	if (isinstance(train_content['state'][i], basestring) == False):
+		train_content['state'][i] = ""
+	if (isinstance(train_content['location'][i], basestring) == False):
+		train_content['location'][i] = ""
+
 train_tweets = train_content['tweet']
 train_location = train_content['state'] + " " + train_content['location']
 train_attitude = train_content.ix[:,4:9]

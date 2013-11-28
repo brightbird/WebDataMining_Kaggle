@@ -1,4 +1,4 @@
-# 11.28 ver 2 
+# 11.28 ver 2
 
 import os
 import pandas
@@ -31,6 +31,17 @@ test_content = pandas.read_csv(test_path)
 train_len = len(train_content)
 test_len = len(test_content)
 
+for i in xrange(0, train_len):
+	if (isinstance(train_content['state'][i], basestring) == False):
+		train_content['state'][i] = ""
+	if (isinstance(train_content['location'][i], basestring) == False):
+		train_content['location'][i] = ""
+for i in xrange(0, test_len):
+	if (isinstance(test_content['state'][i], basestring) == False):
+		test_content['state'][i] = ""
+	if (isinstance(test_content['location'][i], basestring) == False):
+		test_content['location'][i] = ""
+
 train_tweets = train_content['tweet']
 train_location = train_content['state'] + " " + train_content['location']
 train_attitude = train_content.ix[:,4:9]
@@ -45,7 +56,7 @@ test_location = test_content['state'] + " " + test_content['location']
 #################################
 print "feature extraction"
 
-vectorizer = TfidfVectorizer(max_features=4000, strip_accents='unicode', analyzer='word')
+vectorizer = TfidfVectorizer(max_features=5000, strip_accents='unicode', analyzer='word')
 vectorizer.fit(train_tweets)
 x_train = vectorizer.transform(train_tweets)
 x_test = vectorizer.transform(test_tweets)
@@ -55,10 +66,21 @@ x_test = vectorizer.transform(test_tweets)
 #################################
 print "regression"
 
-y_train = np.array(train_attributes)
-clf = linear_model.Ridge (alpha = 1.85)
+clf = Ridge (alpha = 1.85)
+
+y_train = np.array(train_attitude)
 clf.fit(x_train, y_train)
-y_test = clf.predict(x_test)
+y_test_attitude = clf.predict(x_test)
+
+y_train = np.array(train_time)
+clf.fit(x_train, y_train)
+y_test_time = clf.predict(x_test)
+
+y_train = np.array(train_weather)
+clf.fit(x_train, y_train)
+y_test_weather = clf.predict(x_test)
+
+y_test = np.hstack((y_test_attitude, y_test_time, y_test_weather))
 
 #################################
 #		write to csv			#
