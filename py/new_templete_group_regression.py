@@ -33,11 +33,13 @@ train_len = len(train_content)
 test_len = len(test_content)
 
 for i in xrange(0, train_len):
+	train_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",train_content['tweet'][i])
 	if (isinstance(train_content['state'][i], basestring) == False):
 		train_content['state'][i] = ""
 	if (isinstance(train_content['location'][i], basestring) == False):
 		train_content['location'][i] = ""
 for i in xrange(0, test_len):
+	test_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",test_content['tweet'][i])
 	if (isinstance(test_content['state'][i], basestring) == False):
 		test_content['state'][i] = ""
 	if (isinstance(test_content['location'][i], basestring) == False):

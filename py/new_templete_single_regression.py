@@ -32,11 +32,13 @@ train_len = len(train_content)
 test_len = len(test_content)
 
 for i in xrange(0, train_len):
+	train_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",train_content['tweet'][i])
 	if (math.isnan(train_content['state'][i])):
 		train_content['state'][i] = ""
 	if (math.isnan(train_content['location'][i])):
 		train_content['location'][i] = ""
 for i in xrange(0, test_len):
+	test_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",test_content['tweet'][i])
 	if (math.isnan(test_content['state'][i])):
 		test_content['state'][i] = ""
 	if (math.isnan(test_content['location'][i])):

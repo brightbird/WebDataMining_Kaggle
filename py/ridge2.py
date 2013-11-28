@@ -3,6 +3,7 @@
 import os
 import pandas
 import nltk
+import re
 import numpy as np
 from sklearn.feature_extraction.text import *
 from sklearn.linear_model import *
@@ -32,11 +33,13 @@ train_len = len(train_content)
 test_len = len(test_content)
 
 for i in xrange(0, train_len):
+	train_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",train_content['tweet'][i])
 	if (isinstance(train_content['state'][i], basestring) == False):
 		train_content['state'][i] = ""
 	if (isinstance(train_content['location'][i], basestring) == False):
 		train_content['location'][i] = ""
 for i in xrange(0, test_len):
+	test_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",test_content['tweet'][i])
 	if (isinstance(test_content['state'][i], basestring) == False):
 		test_content['state'][i] = ""
 	if (isinstance(test_content['location'][i], basestring) == False):
@@ -55,6 +58,9 @@ test_location = test_content['state'] + " " + test_content['location']
 # 		Feature Exraction 		#
 #################################
 print "feature extraction"
+
+train_tweets = train_tweets + " " + train_location
+test_tweets = test_tweets + " " + test_location
 
 vectorizer = TfidfVectorizer(max_features=5000, strip_accents='unicode', analyzer='word')
 vectorizer.fit(train_tweets)

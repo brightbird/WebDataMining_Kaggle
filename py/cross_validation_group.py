@@ -6,12 +6,13 @@
 # ridge 1
 # kaggle : , RMSE : 0.16409
 # ridge 2
-# kaggle : , RMSE : 0.15712
+# kaggle : , RMSE : 0.15752
 
 import os
 import pandas
 import nltk
 import math
+import re
 import numpy as np
 from sklearn.feature_extraction.text import *
 from sklearn.feature_selection import SelectPercentile, chi2
@@ -23,8 +24,6 @@ from sklearn import cross_validation
 ########################
 
 CORPUS_SIZE = 0 		# 0 for entire, 1 for small 
-SELECT_PERCENTILE = 30
-SELECTION = 0 			# 0 for off, 1 for on
 
 #################################
 #  	  get content from CSV 	    #
@@ -41,6 +40,7 @@ train_content = pandas.read_csv(train_path)
 train_len = len(train_content)
 
 for i in xrange(0, train_len):
+	train_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",train_content['tweet'][i])
 	if (isinstance(train_content['state'][i], basestring) == False):
 		train_content['state'][i] = ""
 	if (isinstance(train_content['location'][i], basestring) == False):
@@ -60,8 +60,7 @@ print "feature extraction"
 
 train_tweets = train_tweets + " " + train_location
 
-vectorizer = TfidfVectorizer(max_features=4000, strip_accents='unicode', analyzer='word')
-# vectorizer = CountVectorizer(min_df=1)
+vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word')
 vectorizer.fit(train_tweets)
 x_train = vectorizer.transform(train_tweets)
 
@@ -75,33 +74,20 @@ x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_train, y_
 
 # clf = LinearRegression()
 clf = Ridge (alpha = 1.85)
-selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
 
 this_y_train = np.array([item[:5] for item in y_train])
 this_x_train = x_train
 this_x_test = x_test
-if (SELECTION == 1):
-	selector.fit(x_train, this_y_train.tolist())
-	this_x_train = selector.transform(x_train)
-	this_x_test = selector.transform(x_test)
 clf.fit(this_x_train, this_y_train)
 y_test_attitude = clf.predict(this_x_test)
 
 this_y_train = np.array([item[5:9] for item in y_train])
 this_x_train = x_train
-if (SELECTION == 1):
-	selector.fit(x_train, this_y_train.tolist())
-	this_x_train = selector.transform(x_train)
-	this_x_test = selector.transform(x_test)
 clf.fit(this_x_train, this_y_train)
 y_test_time = clf.predict(this_x_test)
 
 this_y_train = np.array([item[9:24] for item in y_train])
 this_x_train = x_train
-if (SELECTION == 1):
-	selector.fit(x_train, this_y_train.tolist())
-	this_x_train = selector.transform(x_train)
-	this_x_test = selector.transform(x_test)
 clf.fit(this_x_train, this_y_train)
 y_test_weather = clf.predict(this_x_test)
 

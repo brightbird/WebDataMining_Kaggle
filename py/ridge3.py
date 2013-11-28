@@ -1,20 +1,19 @@
-# 11.28 ver 2 - 0.23332
-# not good, selection shoud be used in single attribute regression
+# 11.28 ver 2
+# kaggle 0.16135
 
 import os
 import pandas
 import nltk
+import re
 import numpy as np
 from sklearn.feature_extraction.text import *
-from sklearn.feature_selection import SelectPercentile, chi2
 from sklearn.linear_model import *
 
 ########################
 ## 		SETTINGS	  ##
 ########################
 
-CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
-SELECT_PERCENTILE = 30
+CORPUS_SIZE = 0 		# 0 for entire, 1 for small 
 
 #################################
 #  	  get content from CSV 	    #
@@ -34,6 +33,19 @@ test_content = pandas.read_csv(test_path)
 train_len = len(train_content)
 test_len = len(test_content)
 
+for i in xrange(0, train_len):
+	train_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",train_content['tweet'][i])
+	if (isinstance(train_content['state'][i], basestring) == False):
+		train_content['state'][i] = ""
+	if (isinstance(train_content['location'][i], basestring) == False):
+		train_content['location'][i] = ""
+for i in xrange(0, test_len):
+	test_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",test_content['tweet'][i])
+	if (isinstance(test_content['state'][i], basestring) == False):
+		test_content['state'][i] = ""
+	if (isinstance(test_content['location'][i], basestring) == False):
+		test_content['location'][i] = ""
+
 train_tweets = train_content['tweet']
 train_location = train_content['state'] + " " + train_content['location']
 train_attitude = train_content.ix[:,4:9]
@@ -48,36 +60,39 @@ test_location = test_content['state'] + " " + test_content['location']
 #################################
 print "feature extraction"
 
-vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word')
+train_tweets = train_tweets + " " + train_location
+test_tweets = test_tweets + " " + test_location
+
+vectorizer = TfidfVectorizer(strip_accents='unicode', analyzer='word')
 vectorizer.fit(train_tweets)
 x_train = vectorizer.transform(train_tweets)
 x_test = vectorizer.transform(test_tweets)
-y_train = np.array(train_attributes)
-
-#################################
-# 		Feature Selection 		#
-#################################
-print "feature selection"
-
-selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
-selector.fit(x_train, y_train.tolist())
-x_train = selector.transform(x_train)
-x_test = selector.transform(x_test)
 
 #################################
 #			Regression			#
 #################################
 print "regression"
 
-clf = LinearRegression()
+clf = Ridge (alpha = 1.85)
+
+y_train = np.array(train_attitude)
 clf.fit(x_train, y_train)
-y_test = clf.predict(x_test)
+y_test_attitude = clf.predict(x_test)
+
+y_train = np.array(train_time)
+clf.fit(x_train, y_train)
+y_test_time = clf.predict(x_test)
+
+y_train = np.array(train_weather)
+clf.fit(x_train, y_train)
+y_test_weather = clf.predict(x_test)
+
+y_test = np.hstack((y_test_attitude, y_test_time, y_test_weather))
 
 #################################
 #		write to csv			#
 #################################
 print "write back to csv"
-
 prediction = np.array(np.hstack([np.matrix(test_content['id']).T, y_test])) 
 col = '%i,' + '%f,'*23 + '%f'
 np.savetxt(cur_dir + "/../data/result/prediction.csv", prediction,col, delimiter=',')

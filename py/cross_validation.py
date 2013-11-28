@@ -10,6 +10,7 @@
 import os
 import pandas
 import nltk
+import re
 import numpy as np
 from sklearn.feature_extraction.text import *
 from sklearn.feature_selection import SelectPercentile, chi2
@@ -21,8 +22,6 @@ from sklearn import cross_validation
 ########################
 
 CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
-SELECT_PERCENTILE = 30
-SELECTION = 0 			# 0 for off, 1 for on
 
 #################################
 #  	  get content from CSV 	    #
@@ -39,6 +38,7 @@ train_content = pandas.read_csv(train_path)
 train_len = len(train_content)
 
 for i in xrange(0, train_len):
+	train_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",train_content['tweet'][i])
 	if (isinstance(train_content['state'][i], basestring) == False):
 		train_content['state'][i] = ""
 	if (isinstance(train_content['location'][i], basestring) == False):
@@ -60,16 +60,6 @@ vectorizer = TfidfVectorizer(max_features=4000, strip_accents='unicode', analyze
 vectorizer.fit(train_tweets)
 x_train = vectorizer.transform(train_tweets)
 y_train = np.array(train_attributes)
-
-#################################
-# 		Feature Selection 		#
-#################################
-if (SELECTION == 1):
-	print "feature selection"
-
-	selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
-	selector.fit(x_train, y_train.tolist())
-	x_train = selector.transform(x_train)
 
 #################################
 #			Regression			#

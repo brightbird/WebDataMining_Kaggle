@@ -9,6 +9,7 @@
 import os
 import pandas
 import nltk
+import re
 import numpy as np
 from sklearn.feature_extraction.text import *
 from sklearn.feature_selection import SelectPercentile, chi2
@@ -21,8 +22,6 @@ from sklearn import cross_validation
 ########################
 
 CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
-SELECT_PERCENTILE = 30
-SELECTION = 0 			# 0 for off, 1 for on
 
 #################################
 #  	  get content from CSV 	    #
@@ -39,6 +38,7 @@ train_content = pandas.read_csv(train_path)
 train_len = len(train_content)
 
 for i in xrange(0, train_len):
+	train_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",train_content['tweet'][i])
 	if (isinstance(train_content['state'][i], basestring) == False):
 		train_content['state'][i] = ""
 	if (isinstance(train_content['location'][i], basestring) == False):
@@ -74,17 +74,11 @@ clf = Ridge (alpha = 1.85)
 # 	C=0.9, epsilon=0.01, shrinking=True, probability=False, cache_size=700, \
 # 	verbose=False, max_iter=-1, random_state=None)
 # clf = SGDRegressor()
-selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
 y_test_arr = []
 for i in xrange(0, 24):
 	this_x_train = x_train
 	this_y_train = [item[i] for item in y_train]
 	this_x_test = x_test
-	if (SELECTION == 1):
-		this_y_train_ = [[item] for item in this_y_train]
-		selector.fit(x_train, this_y_train_)
-		this_x_train = selector.transform(x_train)
-		this_x_test = selector.transform(x_test)
 	clf.fit(this_x_train, this_y_train)
 	y_test_arr.append(clf.predict(this_x_test))
 
