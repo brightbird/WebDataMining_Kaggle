@@ -1,9 +1,5 @@
-# 11.28 ver 1
-# new templete regression
-# kaggle : 0.17528, RMSE : 0.17920
-# new templete regression 2
-# kaggle : 0.23332, RMSE : 0.22970
-
+# 11.28 ver 2 - 0.23332
+# not good, selection shoud be used in single attribute regression
 
 import os
 import pandas
@@ -12,15 +8,13 @@ import numpy as np
 from sklearn.feature_extraction.text import *
 from sklearn.feature_selection import SelectPercentile, chi2
 from sklearn.linear_model import *
-from sklearn import cross_validation
 
 ########################
 ## 		SETTINGS	  ##
 ########################
 
-CORPUS_SIZE = 0 		# 0 for entire, 1 for small 
+CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
 SELECT_PERCENTILE = 30
-SELECTION = 1 			# 0 for off, 1 for on
 
 #################################
 #  	  get content from CSV 	    #
@@ -29,12 +23,16 @@ print "get content from csv"
 
 cur_dir = os.getcwd()
 if (CORPUS_SIZE == 1):
+	test_path = cur_dir + "/../data/small_test.csv"
 	train_path = cur_dir + "/../data/small_train.csv"
 else:
+	test_path = cur_dir + "/../data/test.csv"
 	train_path= cur_dir + "/../data/train.csv"
 
 train_content = pandas.read_csv(train_path)
+test_content = pandas.read_csv(test_path)
 train_len = len(train_content)
+test_len = len(test_content)
 
 train_tweets = train_content['tweet']
 train_location = train_content['state'] + " " + train_content['location']
@@ -42,6 +40,8 @@ train_attitude = train_content.ix[:,4:9]
 train_time = train_content.ix[:,9:13]
 train_weather = train_content.ix[:,13:28]
 train_attributes = train_content.ix[:,4:28]
+test_tweets = test_content['tweet']
+test_location = test_content['state'] + " " + test_content['location']
 
 #################################
 # 		Feature Exraction 		#
@@ -51,67 +51,33 @@ print "feature extraction"
 vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word')
 vectorizer.fit(train_tweets)
 x_train = vectorizer.transform(train_tweets)
+x_test = vectorizer.transform(test_tweets)
 y_train = np.array(train_attributes)
 
 #################################
 # 		Feature Selection 		#
 #################################
-if (SELECTION == 1):
-	print "feature selection"
+print "feature selection"
 
-	selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
-	selector.fit(x_train, y_train.tolist())
-	x_train = selector.transform(x_train)
+selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
+selector.fit(x_train, y_train.tolist())
+x_train = selector.transform(x_train)
+x_test = selector.transform(x_test)
 
 #################################
 #			Regression			#
 #################################
 print "regression"
 
-x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_train, y_train, test_size=0.4, random_state=0)
 clf = LinearRegression()
 clf.fit(x_train, y_train)
-prediction = clf.predict(x_test)
+y_test = clf.predict(x_test)
 
 #################################
-#			Normalize			#
+#		write to csv			#
 #################################
-print "normalization"
+print "write back to csv"
 
-length = x_test.shape[0]
-temp = []
-for i in xrange(0, length):
-	temp.append([])
-	vector = prediction[i]
- 	for j in xrange(0, 24):
- 		num = vector[j]
- 		if (num > 0):
- 			temp[i].append(num)
- 		else:
- 			temp[i].append(0)
-
-for i in xrange(0, length):
- 	summary = 0
- 	for j in xrange(0, 5):
- 		summary += temp[i][j]
- 	for j in xrange(0, 5):
- 		temp[i][j] /= summary
- 	summary = 0
- 	for j in xrange(5, 9):
- 		summary += temp[i][j]
- 	for j in xrange(5, 9):
- 		temp[i][j] /= summary
- 	summary = 0
- 	for j in xrange(9, 24):
- 		summary += temp[i][j]
- 	for j in xrange(9, 24):
- 		temp[i][j] /= summary
-
-prediction = temp
-
-#################################
-#			score				#
-#################################
-
-RMSE = np.sqrt(np.sum(np.array(np.array(prediction)-y_test)**2)/ (x_test.shape[0]*24.0))
-print "RMSE :", RMSE
+prediction = np.array(np.hstack([np.matrix(test_content['id']).T, y_test])) 
+col = '%i,' + '%f,'*23 + '%f'
+np.savetxt(cur_dir + "/../data/result/prediction.csv", prediction,col, delimiter=',')

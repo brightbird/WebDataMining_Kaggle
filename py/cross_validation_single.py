@@ -1,9 +1,8 @@
 # 11.28 ver 1
-# new templete regression
-# kaggle : 0.17528, RMSE : 0.17920
-# new templete regression 2
-# kaggle : 0.23332, RMSE : 0.22970
-
+# new templete_single
+# kaggle: , RMSE: 0.21740
+# new templete_single 2
+# kaggle: , RMSE: 0.26941
 
 import os
 import pandas
@@ -18,7 +17,7 @@ from sklearn import cross_validation
 ## 		SETTINGS	  ##
 ########################
 
-CORPUS_SIZE = 0 		# 0 for entire, 1 for small 
+CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
 SELECT_PERCENTILE = 30
 SELECTION = 1 			# 0 for off, 1 for on
 
@@ -32,6 +31,7 @@ if (CORPUS_SIZE == 1):
 	train_path = cur_dir + "/../data/small_train.csv"
 else:
 	train_path= cur_dir + "/../data/train.csv"
+
 
 train_content = pandas.read_csv(train_path)
 train_len = len(train_content)
@@ -51,34 +51,45 @@ print "feature extraction"
 vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word')
 vectorizer.fit(train_tweets)
 x_train = vectorizer.transform(train_tweets)
-y_train = np.array(train_attributes)
-
-#################################
-# 		Feature Selection 		#
-#################################
-if (SELECTION == 1):
-	print "feature selection"
-
-	selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
-	selector.fit(x_train, y_train.tolist())
-	x_train = selector.transform(x_train)
 
 #################################
 #			Regression			#
 #################################
 print "regression"
 
+y_train = np.array(train_attributes)
 x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_train, y_train, test_size=0.4, random_state=0)
+
 clf = LinearRegression()
-clf.fit(x_train, y_train)
-prediction = clf.predict(x_test)
+selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
+
+y_test_arr = []
+for i in xrange(0, 24):
+	this_x_train = x_train
+	this_y_train = [item[i] for item in y_train]
+	this_x_test = x_test
+	if (SELECTION == 1):
+		this_y_train_ = [[item] for item in this_y_train]
+		selector.fit(x_train, this_y_train_)
+		this_x_train = selector.transform(x_train)
+		this_x_test = selector.transform(x_test)
+	clf.fit(this_x_train, this_y_train)
+	y_test_arr.append(clf.predict(this_x_test))
+
+length = x_test.shape[0]
+prediction = []
+for i in xrange(0, length):
+	prediction.append([])
+	for j in xrange(0, 24):
+		prediction[i].append(y_test_arr[j][i])
+
+prediction = np.array(prediction)
 
 #################################
 #			Normalize			#
 #################################
 print "normalization"
 
-length = x_test.shape[0]
 temp = []
 for i in xrange(0, length):
 	temp.append([])
@@ -94,18 +105,23 @@ for i in xrange(0, length):
  	summary = 0
  	for j in xrange(0, 5):
  		summary += temp[i][j]
- 	for j in xrange(0, 5):
- 		temp[i][j] /= summary
+ 	if (summary != 0):
+	 	for j in xrange(0, 5):
+	 		temp[i][j] /= summary
+
  	summary = 0
  	for j in xrange(5, 9):
  		summary += temp[i][j]
- 	for j in xrange(5, 9):
- 		temp[i][j] /= summary
+ 	if (summary != 0):
+	 	for j in xrange(5, 9):
+	 		temp[i][j] /= summary
+
  	summary = 0
  	for j in xrange(9, 24):
  		summary += temp[i][j]
- 	for j in xrange(9, 24):
- 		temp[i][j] /= summary
+ 	if (summary != 0):
+	 	for j in xrange(9, 24):
+	 		temp[i][j] /= summary
 
 prediction = temp
 
@@ -113,5 +129,5 @@ prediction = temp
 #			score				#
 #################################
 
-RMSE = np.sqrt(np.sum(np.array(np.array(prediction)-y_test)**2)/ (x_test.shape[0]*24.0))
+RMSE = np.sqrt(np.sum(np.array(prediction-y_test)**2)/ (x_test.shape[0]*24.0))
 print "RMSE :", RMSE

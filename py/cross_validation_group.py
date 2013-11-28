@@ -1,9 +1,8 @@
 # 11.28 ver 1
-# new templete regression
+# new templete group
 # kaggle : 0.17528, RMSE : 0.17920
-# new templete regression 2
-# kaggle : 0.23332, RMSE : 0.22970
-
+# new templete group 2
+# kaggle : , RMSE : 0.21230
 
 import os
 import pandas
@@ -51,27 +50,47 @@ print "feature extraction"
 vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word')
 vectorizer.fit(train_tweets)
 x_train = vectorizer.transform(train_tweets)
-y_train = np.array(train_attributes)
-
-#################################
-# 		Feature Selection 		#
-#################################
-if (SELECTION == 1):
-	print "feature selection"
-
-	selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
-	selector.fit(x_train, y_train.tolist())
-	x_train = selector.transform(x_train)
 
 #################################
 #			Regression			#
 #################################
 print "regression"
 
+y_train = np.array(train_attributes)
 x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_train, y_train, test_size=0.4, random_state=0)
+
 clf = LinearRegression()
-clf.fit(x_train, y_train)
-prediction = clf.predict(x_test)
+selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
+
+this_y_train = np.array([item[:5] for item in y_train])
+this_x_train = x_train
+this_x_test = x_test
+if (SELECTION == 1):
+	selector.fit(x_train, this_y_train.tolist())
+	this_x_train = selector.transform(x_train)
+	this_x_test = selector.transform(x_test)
+clf.fit(this_x_train, this_y_train)
+y_test_attitude = clf.predict(this_x_test)
+
+this_y_train = np.array([item[5:9] for item in y_train])
+this_x_train = x_train
+if (SELECTION == 1):
+	selector.fit(x_train, this_y_train.tolist())
+	this_x_train = selector.transform(x_train)
+	this_x_test = selector.transform(x_test)
+clf.fit(this_x_train, this_y_train)
+y_test_time = clf.predict(this_x_test)
+
+this_y_train = np.array([item[9:24] for item in y_train])
+this_x_train = x_train
+if (SELECTION == 1):
+	selector.fit(x_train, this_y_train.tolist())
+	this_x_train = selector.transform(x_train)
+	this_x_test = selector.transform(x_test)
+clf.fit(this_x_train, this_y_train)
+y_test_weather = clf.predict(this_x_test)
+
+prediction = np.hstack((y_test_attitude, y_test_time, y_test_weather))
 
 #################################
 #			Normalize			#
@@ -113,5 +132,5 @@ prediction = temp
 #			score				#
 #################################
 
-RMSE = np.sqrt(np.sum(np.array(np.array(prediction)-y_test)**2)/ (x_test.shape[0]*24.0))
+RMSE = np.sqrt(np.sum(np.array(prediction-y_test)**2)/ (x_test.shape[0]*24.0))
 print "RMSE :", RMSE
