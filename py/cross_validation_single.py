@@ -97,6 +97,8 @@ for i in xrange(0, length):
  	for j in xrange(0, 24):
  		num = vector[j]
  		if (num > 0):
+ 			temp[i].append(1)
+ 		elif (num >= 0.05):
  			temp[i].append(num)
  		else:
  			temp[i].append(0)

@@ -3,6 +3,8 @@
 # kaggle : 0.17528, RMSE : 0.17920
 # new templete regression 2
 # kaggle : 0.23332, RMSE : 0.22970
+# ridge 1
+# kaggle : 0.16405, RMSE : 0.16414 
 
 
 import os
@@ -20,7 +22,7 @@ from sklearn import cross_validation
 
 CORPUS_SIZE = 0 		# 0 for entire, 1 for small 
 SELECT_PERCENTILE = 30
-SELECTION = 1 			# 0 for off, 1 for on
+SELECTION = 0 			# 0 for off, 1 for on
 
 #################################
 #  	  get content from CSV 	    #
@@ -69,7 +71,8 @@ if (SELECTION == 1):
 print "regression"
 
 x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_train, y_train, test_size=0.4, random_state=0)
-clf = LinearRegression()
+# clf = LinearRegression()
+clf = Ridge (alpha = 1.85)
 clf.fit(x_train, y_train)
 prediction = clf.predict(x_test)
 
@@ -86,6 +89,8 @@ for i in xrange(0, length):
  	for j in xrange(0, 24):
  		num = vector[j]
  		if (num > 0):
+ 			temp[i].append(1)
+ 		elif (num >= 0.05):
  			temp[i].append(num)
  		else:
  			temp[i].append(0)
