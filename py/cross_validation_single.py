@@ -1,8 +1,10 @@
 # 11.28 ver 1
 # new templete_single
-# kaggle: , RMSE: 0.21740
+# kaggle: , RMSE: 0.17796
 # new templete_single 2
-# kaggle: , RMSE: 0.26941
+# kaggle: , RMSE: 0.18308
+# ridge 1
+# kaggle : , RMSE : 0.16409
 
 import os
 import pandas
@@ -11,6 +13,7 @@ import numpy as np
 from sklearn.feature_extraction.text import *
 from sklearn.feature_selection import SelectPercentile, chi2
 from sklearn.linear_model import *
+from sklearn.svm import *
 from sklearn import cross_validation
 
 ########################
@@ -19,7 +22,7 @@ from sklearn import cross_validation
 
 CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
 SELECT_PERCENTILE = 30
-SELECTION = 1 			# 0 for off, 1 for on
+SELECTION = 0 			# 0 for off, 1 for on
 
 #################################
 #  	  get content from CSV 	    #
@@ -48,7 +51,7 @@ train_attributes = train_content.ix[:,4:28]
 #################################
 print "feature extraction"
 
-vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word')
+vectorizer = TfidfVectorizer(max_features=4000, strip_accents='unicode', analyzer='word')
 vectorizer.fit(train_tweets)
 x_train = vectorizer.transform(train_tweets)
 
@@ -60,9 +63,13 @@ print "regression"
 y_train = np.array(train_attributes)
 x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_train, y_train, test_size=0.4, random_state=0)
 
-clf = LinearRegression()
+# clf = LinearRegression()
+# clf = Ridge (alpha = 1.85)
+# clf = SVR(kernel='rbf', degree=3, gamma=0.2, coef0=0.0, tol=0.001, \
+# 	C=0.9, epsilon=0.01, shrinking=True, probability=False, cache_size=700, \
+# 	verbose=False, max_iter=-1, random_state=None)
+# clf = SGDRegressor()
 selector = SelectPercentile(score_func=chi2, percentile=SELECT_PERCENTILE)
-
 y_test_arr = []
 for i in xrange(0, 24):
 	this_x_train = x_train
@@ -96,7 +103,7 @@ for i in xrange(0, length):
 	vector = prediction[i]
  	for j in xrange(0, 24):
  		num = vector[j]
- 		if (num > 0):
+ 		if (num > 1):
  			temp[i].append(1)
  		elif (num >= 0.05):
  			temp[i].append(num)
@@ -116,13 +123,6 @@ for i in xrange(0, length):
  		summary += temp[i][j]
  	if (summary != 0):
 	 	for j in xrange(5, 9):
-	 		temp[i][j] /= summary
-
- 	summary = 0
- 	for j in xrange(9, 24):
- 		summary += temp[i][j]
- 	if (summary != 0):
-	 	for j in xrange(9, 24):
 	 		temp[i][j] /= summary
 
 prediction = temp

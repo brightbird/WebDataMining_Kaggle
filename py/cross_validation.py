@@ -20,7 +20,7 @@ from sklearn import cross_validation
 ## 		SETTINGS	  ##
 ########################
 
-CORPUS_SIZE = 0 		# 0 for entire, 1 for small 
+CORPUS_SIZE = 1 		# 0 for entire, 1 for small 
 SELECT_PERCENTILE = 30
 SELECTION = 0 			# 0 for off, 1 for on
 
@@ -50,7 +50,7 @@ train_attributes = train_content.ix[:,4:28]
 #################################
 print "feature extraction"
 
-vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word')
+vectorizer = TfidfVectorizer(max_features=4000, strip_accents='unicode', analyzer='word')
 vectorizer.fit(train_tweets)
 x_train = vectorizer.transform(train_tweets)
 y_train = np.array(train_attributes)
@@ -88,7 +88,7 @@ for i in xrange(0, length):
 	vector = prediction[i]
  	for j in xrange(0, 24):
  		num = vector[j]
- 		if (num > 0):
+ 		if (num > 1):
  			temp[i].append(1)
  		elif (num >= 0.05):
  			temp[i].append(num)
@@ -99,18 +99,15 @@ for i in xrange(0, length):
  	summary = 0
  	for j in xrange(0, 5):
  		summary += temp[i][j]
- 	for j in xrange(0, 5):
- 		temp[i][j] /= summary
+ 	if (summary != 0):
+	 	for j in xrange(0, 5):
+	 		temp[i][j] /= summary
  	summary = 0
  	for j in xrange(5, 9):
  		summary += temp[i][j]
- 	for j in xrange(5, 9):
- 		temp[i][j] /= summary
- 	summary = 0
- 	for j in xrange(9, 24):
- 		summary += temp[i][j]
- 	for j in xrange(9, 24):
- 		temp[i][j] /= summary
+ 	if (summary != 0):
+	 	for j in xrange(5, 9):
+	 		temp[i][j] /= summary
 
 prediction = temp
 

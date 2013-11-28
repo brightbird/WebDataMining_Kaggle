@@ -1,5 +1,4 @@
-# 11.28 ver 1 - 0.17528 normalized
-# the same with once regression
+# 11.28 ver 2 
 
 import os
 import pandas
@@ -56,21 +55,10 @@ x_test = vectorizer.transform(test_tweets)
 #################################
 print "regression"
 
-clf = LinearRegression()
-
-y_train = np.array(train_attitude)
+y_train = np.array(train_attributes)
+clf = linear_model.Ridge (alpha = 1.85)
 clf.fit(x_train, y_train)
-y_test_attitude = clf.predict(x_test)
-
-y_train = np.array(train_time)
-clf.fit(x_train, y_train)
-y_test_time = clf.predict(x_test)
-
-y_train = np.array(train_weather)
-clf.fit(x_train, y_train)
-y_test_weather = clf.predict(x_test)
-
-y_test = np.hstack((y_test_attitude, y_test_time, y_test_weather))
+y_test = clf.predict(x_test)
 
 #################################
 #		write to csv			#
