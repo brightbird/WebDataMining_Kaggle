@@ -24,40 +24,44 @@ for item in content:
 # attrs
 for i in xrange(0, length):
 	# attitude
-	summary = 0
 	for j in xrange(1, 6):
 		num = float(content[i][j])
-		if (num > 0):
-			summary += num
-	for j in xrange(1, 6):
-		num = float(content[i][j])
-		if (num > 0):
-			normalized_content[i].append(num / summary)
+		if (num > 0.95):
+			normalized_content[i].append(1)
+		elif (num > 0.05):
+			normalized_content[i].append(num)
 		else:
 			normalized_content[i].append(0)
+	summary = 0
+	for j in xrange(1, 6):
+		summary += normalized_content[i][j]
+	if (summary != 0):
+		for j in xrange(1, 6):
+			normalized_content[i][j] /= summary
+
 	# time
-	summary = 0
 	for j in xrange(6, 10):
 		num = float(content[i][j])
-		if (num > 0):
-			summary += num
-	for j in xrange(6, 10):
-		num = float(content[i][j])
-		if (num > 0):
-			normalized_content[i].append(num / summary)
+		if (num > 0.95):
+			normalized_content[i].append(1)
+		elif (num > 0.05):
+			normalized_content[i].append(num)
 		else:
 			normalized_content[i].append(0)
+	summary = 0
+	for j in xrange(6, 10):
+		summary += normalized_content[i][j]
+	if (summary != 0):
+		for j in xrange(6, 10):
+			normalized_content[i][j] /= summary
+
 	# weather
-	summary = 0
 	for j in xrange(10, 25):
 		num = float(content[i][j])
 		if (num > 0):
-			summary += num
-	for j in xrange(10, 25):
-		num = float(content[i][j])
-		if (num > 0):
-			normalized_content[i].append(num / summary)
+			normalized_content[i].append(num)
 		else:
 			normalized_content[i].append(0)
+
 writer.writerow(header)
 writer.writerows(normalized_content)
