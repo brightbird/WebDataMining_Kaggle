@@ -1,4 +1,4 @@
-# 11.28 ver 1
+# 11.28 ver 1 - 0.17528 normalized
 
 import os
 import pandas
@@ -33,17 +33,17 @@ test_len = len(test_content)
 
 for i in xrange(0, train_len):
 	train_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",train_content['tweet'][i])
-	if (math.isnan(train_content['state'][i])):
+	if (isinstance(train_content['state'][i], basestring) == False):
 		train_content['state'][i] = ""
-	if (math.isnan(train_content['location'][i])):
+	if (isinstance(train_content['location'][i], basestring) == False):
 		train_content['location'][i] = ""
 for i in xrange(0, test_len):
 	test_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",test_content['tweet'][i])
-	if (math.isnan(test_content['state'][i])):
+	if (isinstance(test_content['state'][i], basestring) == False):
 		test_content['state'][i] = ""
-	if (math.isnan(test_content['location'][i])):
+	if (isinstance(test_content['location'][i], basestring) == False):
 		test_content['location'][i] = ""
-
+		
 train_tweets = train_content['tweet']
 train_location = train_content['state'] + " " + train_content['location']
 train_attitude = train_content.ix[:,4:9]
@@ -68,21 +68,10 @@ x_test = vectorizer.transform(test_tweets)
 #################################
 print "regression"
 
+y_train = np.array(train_attributes)
 clf = LinearRegression()
-
-y_test_arr = []
-for i in xrange(0, 24):
-	this_y = np.array(train_attributes.ix[:,i])
-	clf.fit(x_train, this_y)
-	y_test_arr.append(clf.predict(x_test))
-
-length = x_test.shape[0]
-y_test = []
-for i in xrange(0, length):
-	y_test.append([])
-	for j in xrange(0, 24):
-		y_test[i].append(y_test_arr[j][i])
-y_test = np.array(y_test)
+clf.fit(x_train, y_train)
+y_test = clf.predict(x_test)
 
 #################################
 #		write to csv			#

@@ -25,7 +25,7 @@ for item in content:
 for i in xrange(0, length):
 	for j in xrange(1, 25):
 		num = float(content[i][j])
-		if (num > 1):
+		if (num >= 0.95):
 			normalized_content[i].append(1)
 		elif (num >= 0.05):
 			normalized_content[i].append(num)

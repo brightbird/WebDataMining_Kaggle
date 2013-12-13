@@ -17,13 +17,14 @@ import numpy as np
 from sklearn.feature_extraction.text import *
 from sklearn.feature_selection import SelectPercentile, chi2
 from sklearn.linear_model import *
+from sklearn.svm import *
 from sklearn import cross_validation
 
 ########################
 ## 		SETTINGS	  ##
 ########################
 
-CORPUS_SIZE = 0 		# 0 for entire, 1 for small 
+extra = " you posit are negat i etc me as at be between both is you was for he she that the it of state my and locat you to weather be degre am it mph weather weather a all to "
 
 #################################
 #  	  get content from CSV 	    #
@@ -31,23 +32,15 @@ CORPUS_SIZE = 0 		# 0 for entire, 1 for small
 print "get content from csv"
 
 cur_dir = os.getcwd()
-if (CORPUS_SIZE == 1):
-	train_path = cur_dir + "/../data/small_train.csv"
-else:
-	train_path= cur_dir + "/../data/train.csv"
+train_path= cur_dir + "/../data/train.csv"
 
 train_content = pandas.read_csv(train_path)
 train_len = len(train_content)
 
 for i in xrange(0, train_len):
-	train_content['tweet'][i] = re.sub("http\S*|@\S*|{link}|RT\s*@\S*", "",train_content['tweet'][i])
-	if (isinstance(train_content['state'][i], basestring) == False):
-		train_content['state'][i] = ""
-	if (isinstance(train_content['location'][i], basestring) == False):
-		train_content['location'][i] = ""
+	train_content['tweet'][i] = str(train_content['tweet'][i]) + " " + str(train_content['state'][i]) + " " + str(train_content['location'][i]) + extra
 
 train_tweets = train_content['tweet']
-train_location = train_content['state'] + " " + train_content['location']
 train_attitude = train_content.ix[:,4:9]
 train_time = train_content.ix[:,9:13]
 train_weather = train_content.ix[:,13:28]
@@ -58,9 +51,7 @@ train_attributes = train_content.ix[:,4:28]
 #################################
 print "feature extraction"
 
-train_tweets = train_tweets + " " + train_location
-
-vectorizer = TfidfVectorizer(max_features=10000, strip_accents='unicode', analyzer='word')
+vectorizer = TfidfVectorizer(ngram_range=(1,3), strip_accents='unicode', analyzer='word')
 vectorizer.fit(train_tweets)
 x_train = vectorizer.transform(train_tweets)
 
@@ -73,7 +64,7 @@ y_train = np.array(train_attributes)
 x_train, x_test, y_train, y_test = cross_validation.train_test_split(x_train, y_train, test_size=0.4, random_state=0)
 
 # clf = LinearRegression()
-clf = Ridge (alpha = 1.85)
+clf = Ridge (alpha = 0.55)
 
 this_y_train = np.array([item[:5] for item in y_train])
 this_x_train = x_train
@@ -94,39 +85,30 @@ y_test_weather = clf.predict(this_x_test)
 prediction = np.hstack((y_test_attitude, y_test_time, y_test_weather))
 
 #################################
-#			Normalize			#
+#		  Normalization			#
 #################################
 print "normalization"
 
-length = x_test.shape[0]
-temp = []
-for i in xrange(0, length):
-	temp.append([])
-	vector = prediction[i]
- 	for j in xrange(0, 24):
- 		num = vector[j]
- 		if (num > 1):
- 			temp[i].append(1)
- 		elif (num >= 0.05):
- 			temp[i].append(num)
- 		else:
- 			temp[i].append(0)
-
-for i in xrange(0, length):
- 	summary = 0
- 	for j in xrange(0, 5):
- 		summary += temp[i][j]
- 	if (summary != 0):
-	 	for j in xrange(0, 5):
-	 		temp[i][j] /= summary
- 	summary = 0
- 	for j in xrange(5, 9):
- 		summary += temp[i][j]
- 	if (summary != 0):
-	 	for j in xrange(5, 9):
-	 		temp[i][j] /= summary
-
-prediction = temp
+for i in xrange(len(y_test)):
+	for j in xrange(24):
+		if y_test[i][j] <= 0.01:
+			y_test[i][j] = 0
+		elif y_test[i][j] >= 0.99:
+			y_test[i][j] = 1
+	# normalize attitude
+	summary = 0
+	for j in xrange(0, 5):
+		summary += y_test[i][j]
+	if (summary != 0):
+		for j in xrange(0, 5):
+			y_test[i][j] /= summary
+	# normalize time
+	summary = 0
+	for j in xrange(5, 9):
+		summary += y_test[i][j]
+	if (summary != 0):
+		for j in xrange(5, 9):
+			y_test[i][j] /= summary
 
 #################################
 #			score				#
